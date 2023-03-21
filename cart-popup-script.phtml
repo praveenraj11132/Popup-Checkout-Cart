@@ -1,0 +1,140 @@
+<?php
+/**
+ * @var $block \Magento\Framework\View\Element\Template
+ **/
+?>
+<?php
+/*
+ * Get the subtotal for cart products
+ */
+$cartData = $block->getData('subtotal');
+$subtotal = $cartData->getSubtotal();
+
+?>
+
+<script type="text/javascript">
+
+    // Require the jQuery library as a dependency and define a function that runs when the module is loaded.
+    // The $ parameter is the jQuery object.
+     require(['jquery'], function($) {
+        $(document).ready(function() {
+
+            // Add a click event listener to all input elements with the name "product_ids[]".
+            $('input[name="product_ids[]"]').click(function() {
+
+                // Get the price of the product as a float.
+                var productPrice = $(this).closest('.product-item-details').find('.price-wrapper .price').text().replace('$', '');
+
+                // Get the quantity of the product as an integer.
+                var productQty = $(this).closest('.product-item-details').find('.product-qty-num').val();
+
+                // Get the current subtotal as a float.
+                var subtotal = parseFloat($('#subtotal').text().replace('$', ''));
+
+                // Calculate the total price of the product by multiplying the price and quantity and converting to a float.
+                var productTotalPrice = parseFloat(productPrice) * parseInt(productQty);
+
+                // Check if the product is selected.
+                var isProductSelected = $(this).prop('checked');
+
+                // If the product is selected, add its total price to the subtotal and set a data attribute on the input element.
+                if (isProductSelected) {
+                    subtotal += productTotalPrice;
+                    $(this).attr('data-product-price', productTotalPrice);
+                }
+
+                // If the product is not selected, remove its total price from the subtotal and remove the data attribute.
+                else {
+                    var productPriceToRemove = parseFloat($(this).attr('data-product-price'));
+                    subtotal -= productPriceToRemove;
+                    $(this).attr('data-product-price', '');
+                }
+
+                // update the HTML element with id "subtotal"
+                $('#subtotal').text('$' + subtotal.toFixed(2));
+            });
+        });
+    });
+
+</script>
+
+<div class="d-flex justify-content-between align-item-center popup-bottom">
+    <div class="popup-subtotal">
+        <span><?= $block->escapeHtml(__('Sub Total:')) ?><span class="price" id = "subtotal"><?= '$'.$subtotal ?></span></span>
+    </div>
+
+    <div class="d-flex justify-content-end align-item-center button-continue">
+        <button type="button"
+                class="action primary stroked btn-nothanks"
+                data-role="no-thanks"
+                title="No Thanks"
+                id="no-thanks"><span><?= $block->escapeHtml(__('No Thanks')) ?></span>
+        </button>
+        <button type="button"
+                class="action primary btn-continue"
+                data-role="add-crosssell-product"
+                title="Continue"
+                id="add-crosssell-product"><span><?= $block->escapeHtml(__('Continue')) ?></span>
+        </button>
+    </div>
+</div>
+<script type="text/javascript">
+    require([
+        'jquery',
+        'mage/url',
+        'Magento_Ui/js/modal/modal'
+    ], function ($, urlBuilder, modal) {
+        $(document).ready(function () {
+            var popupCheckout,
+                urlCheckout = urlBuilder.build("checkout");
+
+            if ($("#cross-sell-hide-checkout").hasClass("crosssell")) {
+                popupCheckout = modal({
+                    type: 'popup',
+                    title: '<?= $block->escapeHtml(__('Often Bought Together')) ?>',
+                    responsive: true,
+                    innerScroll: true,
+                    modalClass: 'checkout-popup',
+                    buttons: []
+                }, $('#cross-sell-hide-checkout'));
+                $(".action.primary.checkout").on('click',function(){
+                    popupCheckout.openModal();
+                });
+            }
+
+            $("#add-crosssell-product").click(function () {
+                let productIds = [];
+                let productQty = [];
+                $('input[name="product_ids[]"]:checked').each(function() {
+                    productIds.push($(this).val());
+                    let qtyIdSelector = $(this).val();
+                    productQty.push($("#" + qtyIdSelector).val());
+                })
+
+                // Disable 'continue' button in cross-sell popup
+                $(this).attr('disabled', true);
+
+                $.ajax({
+                    url: '<?= $block->getUrl("checkoutextended/crosssell/addtocart") ?>',
+                    type: 'POST',
+                    dataType: 'json',
+                    showLoader: true,
+                    data:{
+                        dataArray: productIds.toString(),
+                        qtyArray : productQty.toString()
+                    },
+                    success: function (result) {
+                        window.location.href = urlCheckout;
+                    },
+                    error: function (xhr, status, error) {
+                        // Handle errors
+                        console.log(error);
+                    }
+                })
+            });
+            $("#no-thanks").click(function () {
+                window.location.href = urlCheckout;
+            });
+        })
+    })
+</script>
