@@ -5,7 +5,7 @@
 ?>
 <?php
 /*
- * Get the subtotal for cart products
+ * Get the subtotal of cart products
  */
 $cartData = $block->getData('subtotal');
 $subtotal = $cartData->getSubtotal();
@@ -16,12 +16,10 @@ $subtotal = $cartData->getSubtotal();
 
     // Require the jQuery library as a dependency and define a function that runs when the module is loaded.
     // The $ parameter is the jQuery object.
-     require(['jquery'], function($) {
+    require(['jquery'], function($) {
         $(document).ready(function() {
-
             // Add a click event listener to all input elements with the name "product_ids[]".
             $('input[name="product_ids[]"]').click(function() {
-
                 // Get the price of the product as a float.
                 var productPrice = $(this).closest('.product-item-details').find('.price-wrapper .price').text().replace('$', '');
 
@@ -53,9 +51,39 @@ $subtotal = $cartData->getSubtotal();
                 // update the HTML element with id "subtotal"
                 $('#subtotal').text('$' + subtotal.toFixed(2));
             });
+
+                // Add an event listener to all quantity input elements.
+
+            $('body').on('click', '.qty-btn', function() {
+                // Get the price of the product as a float.
+
+                var productPrice = $(this).closest('.product-item-details').find('.price-wrapper .price').text().replace('$', '');
+
+                // Get the quantity of the product as an integer.
+                var productQty = $(this).closest('.product-item-details').find('.product-qty-num').val();
+
+                // Get the current subtotal as a float.
+                var subtotal = parseFloat($('#subtotal').text().replace('$', ''));
+
+                // Calculate the total price of the product by multiplying the price and quantity and converting to a float.
+                var productTotalPrice = parseFloat(productPrice) * parseInt(productQty);
+
+                // Check if the product is selected.
+                var isProductSelected = $(this).closest('.product-item-details').find('input[name="product_ids[]"]').prop('checked');
+
+                // If the product is selected, add its total price to the subtotal and update the data attribute on the input element.
+                if (isProductSelected) {
+                    var oldProductPrice = parseFloat($(this).closest('.product-item-details').find('input[name="product_ids[]"]').attr('data-product-price'));
+                    subtotal -= oldProductPrice;
+                    subtotal += productTotalPrice;
+                    $(this).closest('.product-item-details').find('input[name="product_ids[]"]').attr('data-product-price', productTotalPrice);
+
+                    // Update the HTML element with id "subtotal".
+                    $('#subtotal').text('$' + subtotal.toFixed(2));
+                }
+            });
         });
     });
-
 </script>
 
 <div class="d-flex justify-content-between align-item-center popup-bottom">
@@ -63,8 +91,8 @@ $subtotal = $cartData->getSubtotal();
         <span><?= $block->escapeHtml(__('Sub Total:')) ?><span class="price" id = "subtotal"><?= '$'.$subtotal ?></span></span>
     </div>
 
-    <div class="d-flex justify-content-end align-item-center button-continue">
-        <button type="button"
+    <div class="d-flex justify-content-end button-continue">
+    <button type="button"
                 class="action primary stroked btn-nothanks"
                 data-role="no-thanks"
                 title="No Thanks"
